@@ -1,0 +1,88 @@
+import tkinter as tk
+from tkinter import messagebox
+
+class FMSVotingApp:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("FMS Voting App")
+        
+        self.competitors = ["Competitor A", "Competitor B"]
+        self.rounds = ["Easy Mode", "Hard Mode", "Temática 1", "Temática 2", "Random Mode", "Minuto 1", "Minuto 2", "Deluxe", "Réplica"]
+        self.current_round_index = 0
+        
+        self.votes = {competitor: {round_name: [tk.StringVar() for _ in range(6)] for round_name in self.rounds} for competitor in self.competitors}
+        self.round_totals = {round_name: {competitor: tk.IntVar() for competitor in self.competitors} for round_name in self.rounds}
+        self.total_rounds = {competitor: tk.IntVar() for competitor in self.competitors}
+        
+        self.show_round()
+        
+        self.root.mainloop()
+        
+    def calculate_total(self, competitor, round_name):
+        total = sum(int(value.get()) if value.get().isdigit() else 0 for value in self.votes[competitor][round_name])
+        self.round_totals[round_name][competitor].set(total)
+        
+    def show_round(self):
+        round_name = self.rounds[self.current_round_index]
+        self.root.title(round_name)
+        
+        for widget in self.root.winfo_children():
+            widget.destroy()
+        
+        for competitor in self.competitors:
+            frame = tk.Frame(self.root)
+            frame.pack(side="top", padx=20, pady=10)
+            
+            label_competitor = tk.Label(frame, text=competitor, font=("Helvetica", 14))
+            label_competitor.pack(side="left", padx=10)
+            
+            pattern_entries = []
+            for i in range(6):
+                pattern_entry = tk.Entry(frame, width=5, textvariable=self.votes[competitor][round_name][i])
+                pattern_entry.insert(0, "0")
+                pattern_entry.pack(side="left", padx=5)
+                pattern_entries.append(pattern_entry)
+        
+        self.button_next = tk.Button(self.root, text="Next", command=self.next_round)
+        self.button_next.pack(side="bottom", padx=20, pady=10)
+        
+        self.root.update_idletasks()
+        self.root.geometry(f"{self.root.winfo_reqwidth()}x{self.root.winfo_reqheight()}")
+        
+    def next_round(self):
+        round_name = self.rounds[self.current_round_index]
+        for competitor in self.competitors:
+            self.calculate_total(competitor, round_name)
+        
+        self.current_round_index += 1
+        
+        if self.current_round_index < len(self.rounds):
+            self.show_round()
+        else:
+            self.show_final_results()
+        
+    def show_final_results(self):
+        for round_name in self.rounds:
+            for competitor in self.competitors:
+                self.calculate_total(competitor, round_name)
+        
+        for competitor in self.competitors:
+            total_rounds = sum(self.round_totals[round_name][competitor].get() for round_name in self.rounds)
+            self.total_rounds[competitor].set(total_rounds)
+        
+        for widget in self.root.winfo_children():
+            widget.destroy()
+            
+        for competitor in self.competitors:
+            label = tk.Label(self.root, text=f"{competitor}: {self.total_rounds[competitor].get()}", font=("Helvetica", 12))
+            label.pack()
+            
+        winner_diff = abs(self.total_rounds["Competitor A"].get() - self.total_rounds["Competitor B"].get())
+        winner_msg = "Ganador" if winner_diff > 5 else "Réplica"
+        
+        winner_label = tk.Label(self.root, text=winner_msg, font=("Helvetica", 14, "bold"))
+        winner_label.pack(pady=10)
+
+if __name__ == "__main__":
+    root = tk.Tk()
+    app = FMSVotingApp(root)
